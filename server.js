@@ -7,7 +7,7 @@ const userDb = require('./users/userDb.js')
 const postDb = require('./posts/postDb')
 
 server.use(express.json())
-// server.use(logger)
+server.use(logger)
 
 server.get('/api/users/', async (req, res) => {
   try {
@@ -80,6 +80,40 @@ server.delete('/api/users/:id', async (req, res) => {
   }
 })
 
+server.get('/api/users/:id/posts', async (req, res) => {
+  const id = req.params.id
+  try {
+    const user = await userDb.getById(id)
+    if(user == undefined) {
+      res.status(404).json({error: 'the user specified by that id does not exist'})
+    } else {
+    const posts = await userDb.getUserPosts(id)
+    res.status(200).json({posts})
+    }
+
+  } catch(err) {
+    res.status(500).json({error: err})
+  }
+})
+
+server.post('/api/users/:id/posts', async (req, res) => {
+  const id = req.params.id
+  const postData = req.body
+  try {
+    const user = await userDb.getById(id)
+    if(user == undefined) {
+      res.status(404).json({error: 'the user specified by that id does not exist'})
+    } else if(!postData.text || postData.text == '') {
+      res.status(404).json({message: 'please provide text for the post'})
+    } else {
+      const post = await postDb.insert({...postData, user_id: id})
+      res.status(200).json(post)
+    }
+  } catch(err){
+
+  }
+})
+
 server.get('/', (req, res) => {
   res.status(200).json({api: 'running'})
 });
@@ -91,6 +125,9 @@ function logger(req, res, next) {
   const url = req.url
   const time = new Date().toISOString()
   console.log(`method: ${method}, url: ${url}, timestamp: ${time}`)
+  next()
 };
+
+
 
 module.exports = server;
